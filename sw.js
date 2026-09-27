@@ -1,11 +1,9 @@
-const CACHE_NAME = "globish1500-shell-v2";
+const CACHE_NAME = "globish1500-shell-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./icon.svg",
-  "./icon-192.png",
-  "./icon-512.png"
+  "./icon.svg"
 ];
 
 self.addEventListener("install", event => {
