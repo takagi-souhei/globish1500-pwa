@@ -1,4 +1,4 @@
-const CACHE_NAME = "globish1500-shell-v1";
+const CACHE_NAME = "globish1500-shell-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
