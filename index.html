@@ -35,7 +35,46 @@
   function countStage(n){return words.filter(w=>record(w).stage>=n||(n===1&&record(w).unknown)).length}
   function dueCount(){const now=Date.now();return words.filter(w=>(state.levels.includes(w.level)||state.includeUnknown&&record(w).unknown)&&(state.includeUnknown&&record(w).unknown||((record(w).stage>0||record(w).unknown)&&record(w).due<=now))).length}
   function shuffleWords(list){for(let i=list.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[list[i],list[j]]=[list[j],list[i]]}return list}
-  function getQueue(){const now=Date.now(),eligible=words.filter(w=>state.levels.includes(w.level)||state.includeUnknown&&record(w).unknown),due=eligible.filter(w=>{const p=record(w);return state.includeUnknown&&p.unknown||(p.stage>0||p.unknown)&&p.due<=now}).sort((a,b)=>record(a).due-record(b).due),retry=eligible.filter(w=>{const p=record(w);return p.stage===0&&!p.unknown&&p.due>0&&p.due<=now}),fresh=eligible.filter(w=>{const p=record(w);return p.stage===0&&!p.unknown&&!p.due});const queue=[...due,...retry,...fresh].slice(0,state.goal);return state.shuffle?shuffleWords(queue):queue}
+  function getQueue() {
+    const now = Date.now();
+  
+    const eligible = words.filter(w =>
+      state.levels.includes(w.level) ||
+      (state.includeUnknown && record(w).unknown)
+    );
+  
+    // ① due（期限が来た単語）
+    let due = eligible.filter(w => {
+      const p = record(w);
+      return state.includeUnknown && p.unknown ||
+        ((p.stage > 0 || p.unknown) && p.due <= now);
+    });
+  
+    // ② retry（前回ミスした単語）
+    let retry = eligible.filter(w => {
+      const p = record(w);
+      return p.stage === 0 && !p.unknown && p.due > 0 && p.due <= now;
+    });
+  
+    // ③ fresh（まだ学習していない単語）
+    let fresh = eligible.filter(w => {
+      const p = record(w);
+      return p.stage === 0 && !p.unknown && !p.due;
+    });
+  
+    // ★ ここで三種それぞれをシャッフルする
+    if (state.shuffle) {
+      due = shuffleWords(due);
+      retry = shuffleWords(retry);
+      fresh = shuffleWords(fresh);
+    }
+  
+    // ④ それらを結合して先頭から goal 個だけ取る
+    const queue = [...due, ...retry, ...fresh].slice(0, state.goal);
+  
+    return queue;
+  }
+
   function renderLoading(title,message,failed=false){app.innerHTML='<main><div class="loading-state"><section class="loading-box"><div class="eyebrow">GLOBISH 1500</div><h1>'+escapeHTML(title)+'</h1><p class="'+(failed?'error-text':'')+'">'+escapeHTML(message).replaceAll("\n","<br>")+'</p>'+(failed?'<button class="button button-primary" data-action="retry">もう一度取得</button> <button class="button button-light" data-action="choose-csv">CSVを選ぶ</button><input class="file-input" id="csv-file" type="file" accept=".csv,text/csv">':"")+'<div class="source-line">語彙データ出典: <a href="https://github.com/taisukef/globish" target="_blank" rel="noreferrer">taisukef/globish</a></div></section></div></main>'}
   async function refreshData(){try{const res=await fetch(DATA_URL,{cache:"no-cache"});if(!res.ok)throw Error("語彙データを取得できませんでした ("+res.status+")");const parsed=parseCSV(await res.text());if(parsed.length<1500)throw Error("語彙データの件数を確認できません。");words=parsed;localStorage.setItem(DATA_KEY,JSON.stringify(words));render()}catch(err){if(!words.length)renderLoading("単語データを読み込めません",err.message+"\n\nネット接続を確認して再試行するか、CSVをダウンロードして選択してください。",true)}}
   function loadWords(){try{const cached=JSON.parse(localStorage.getItem(DATA_KEY)||"null");if(Array.isArray(cached)&&cached.length>=1500){words=cached;render();refreshData();return}}catch(_){}renderLoading("単語データを読み込んでいます","初回のみインターネット接続が必要です。Globishの英単語と日本語訳を取得しています。");refreshData()}
